@@ -6,17 +6,6 @@ CUDA Stream Compaction
 * Ziye Zhou
 * Tested on: Windows 8.1, i7-4910 @ 2.90GHz 32GB, GTX 880M 8192MB (Alienware)
 
-## Write-up
-
-1. Update all of the TODOs at the top of this README.
-2. Add a description of this project including a list of its features.
-3. Add your performance analysis (see below).
-
-All extra credit features must be documented in your README, explaining its
-value (with performance comparison, if applicable!) and showing an example how
-it works. For radix sort, show how it is called and an example of its output.
-
-Always profile with Release mode builds and run without debugging.
 ### Description
 1. Implemented CPU Scan & Stream Compaction
 2. Implemented Naive GPU Scan & Stream Compaction
