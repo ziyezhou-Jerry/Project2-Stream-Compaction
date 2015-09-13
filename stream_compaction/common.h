@@ -9,7 +9,7 @@
 
 
 /*! Block size used for CUDA kernel launch. */
-#define blockSize 128
+#define blockSize 256
 
 
 

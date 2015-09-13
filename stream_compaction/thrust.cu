@@ -18,8 +18,21 @@ void scan(int n, int *odata, const int *idata) {
     // example: for device_vectors dv_in and dv_out:
     // thrust::exclusive_scan(dv_in.begin(), dv_in.end(), dv_out.begin());
 
+	//cuda event init
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	float milliseconds = 0;
+
+	cudaEventRecord(start);
+
 	thrust::exclusive_scan(idata, idata + n, odata); // in-place scan
 
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "thrust method: " << milliseconds << "ms" << std::endl;
 	
 }
 

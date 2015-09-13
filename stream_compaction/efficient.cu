@@ -1,5 +1,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <iostream>
 #include "common.h"
 #include "efficient.h"
 
@@ -15,7 +16,9 @@ namespace StreamCompaction {
 		{
 			int index = threadIdx.x + (blockIdx.x * blockDim.x);
 
-			if (index > 0 && index < n && ((index + 1) % (m_power * 2) == 0))
+			index = index *m_power * 2 -1;
+
+			if (index > 0 && index < n ) //&& ((index + 1) % (m_power * 2) == 0)
 			{
 				x[index] = x[index] + x[index - m_power];
 			}
@@ -26,7 +29,9 @@ namespace StreamCompaction {
 		{
 			int index = threadIdx.x + (blockIdx.x * blockDim.x);
 
-			if (index>0 && index < n && ((index + 1) % (m_power * 2) == 0))
+			index = index* m_power * 2 -1;
+
+			if (index>0 && index < n ) //&& ((index + 1) % (m_power * 2) == 0)
 			{
 				int tmp = x[index];
 				x[index] = x[index] + x[index - m_power]; //sum
@@ -61,11 +66,34 @@ namespace StreamCompaction {
 			cudaMemcpy(dev_array, idata, n*sizeof(int), cudaMemcpyHostToDevice);
 			checkCUDAErrorFn("cudaMemcpy dev_array failed!");
 
+			
+			int* pow_2_d  =new int[m_power];
+			int* pow_2_log2n_minus_d = new int[m_power];
+			for (int d = 0; d < m_power; d++)
+			{
+				pow_2_d[d] = pow(2, d);
+				
+				int nn = m_power - 1 - d;
+				
+				pow_2_log2n_minus_d[d] = pow(2, nn);
+
+			}
+			
+			
+			
+			//cuda event init
+			cudaEvent_t start, stop;
+			cudaEventCreate(&start);
+			cudaEventCreate(&stop);
+			float milliseconds = 0;
+
+			cudaEventRecord(start);
+			
 			//up sweep
 			for (int d = 0; d < m_power; d++)
 			{
-				int pow_2_d = pow(2, d);
-				kern_up_sweep << <fullBlocksPerGrid, threadsPerBlock >> >(new_n, pow_2_d, dev_array);
+				//int pow_2_d = pow(2, d);
+				kern_up_sweep << <fullBlocksPerGrid, threadsPerBlock >> >(new_n, pow_2_d[d], dev_array);
 			}
 
 			//down sweep
@@ -75,12 +103,19 @@ namespace StreamCompaction {
 			
 			for (int d = 0; d < m_power; d++)
 			{
-				int nn = m_power - 1 - d;
-				int pow_2_log2n_minus_d = pow(2, nn);
+				/*int nn = m_power - 1 - d;
+				int pow_2_log2n_minus_d = pow(2, nn);*/
 
-				kern_down_sweep << <fullBlocksPerGrid, threadsPerBlock >> >(new_n, pow_2_log2n_minus_d, dev_array);
+				kern_down_sweep << <fullBlocksPerGrid, threadsPerBlock >> >(new_n, pow_2_log2n_minus_d[d], dev_array);
 			}
 
+			
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			milliseconds = 0;
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			std::cout << "efficient method: " << milliseconds << "ms" << std::endl;
+			
 			//copy data
 			cudaMemcpy(odata, dev_array, n*sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -156,7 +191,7 @@ namespace StreamCompaction {
 			//copy back to host
 			cudaMemcpy(odata, dev_odata, n*sizeof(int), cudaMemcpyDeviceToHost);
 
-			return host_indices[n - 1]; //num of non-zero
+			return host_indices[n - 1]+host_bools[n-1]; //num of non-zero
 			
 
 			

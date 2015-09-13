@@ -1,6 +1,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cmath>
+#include <iostream>
 #include "radixsort.h"
 #include "common.h"
 #include "thrust.h"
@@ -105,6 +106,14 @@ namespace StreamCompaction {
 			int* host_e_array = new int[n];
 			
 			
+			//cuda event init
+			cudaEvent_t start, stop;
+			cudaEventCreate(&start);
+			cudaEventCreate(&stop);
+			float milliseconds = 0;
+
+			cudaEventRecord(start);
+			
 			for (int k = 0; k<32; k++)
 			{
 				//get b array
@@ -116,7 +125,7 @@ namespace StreamCompaction {
 				//get f data
 				
 				cudaMemcpy(host_e_array, dev_e_array, n*sizeof(int), cudaMemcpyDeviceToHost);
-				StreamCompaction::Thrust::scan(n, host_f_array, host_e_array); //may have problem of passing the argument!!!
+				StreamCompaction::Thrust::scan(n, host_f_array, host_e_array); 
 				cudaMemcpy(dev_f_array, host_f_array, n*sizeof(int), cudaMemcpyHostToDevice);
 
 				//get t array
@@ -135,6 +144,12 @@ namespace StreamCompaction {
 				cudaMemcpy(dev_idata, dev_odata, n*sizeof(int), cudaMemcpyDeviceToDevice);
 
 			}
+
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			milliseconds = 0;
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			std::cout << "radix sort method: " << milliseconds << "ms" << std::endl;
 
 			cudaMemcpy(odata, dev_odata, n*sizeof(int), cudaMemcpyDeviceToHost);
 

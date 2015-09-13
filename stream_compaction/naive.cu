@@ -1,5 +1,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <iostream>
 #include "common.h"
 #include "naive.h"
 
@@ -57,6 +58,13 @@ void scan(int n, int *odata, const int *idata) {
 	cudaMemcpy(dev_array1, tmp_data, n*sizeof(int), cudaMemcpyHostToDevice);
 	checkCUDAErrorFn("cudaMemcpy dev_array1 failed!");
 	
+	//cuda event init
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	float milliseconds = 0;
+	
+	cudaEventRecord(start);
 	//invoke the kernel function m_power times
 	for (int d = 1; d<=m_power; d++)
 	{
@@ -65,6 +73,12 @@ void scan(int n, int *odata, const int *idata) {
 		//copy array2 to array1
 		cudaMemcpy(dev_array1,dev_array2,new_n*sizeof(int),cudaMemcpyDeviceToDevice);
 	}
+
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "naive method: " << milliseconds << "ms"<<std::endl;
 
 	cudaMemcpy(odata, dev_array2, n*sizeof(int), cudaMemcpyDeviceToHost);
 	

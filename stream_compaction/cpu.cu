@@ -1,4 +1,7 @@
 #include <cstdio>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <iostream>
 #include "cpu.h"
 
 namespace StreamCompaction {
@@ -11,11 +14,25 @@ void scan(int n, int *odata, const int *idata) {
     // TODO
     
 	
+	//cuda event init
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	float milliseconds = 0;
+
+	cudaEventRecord(start);
+
 	odata[0] = 0;
 	for (int i = 1; i<n; i++)
 	{
 		odata[i] = odata[i - 1] + idata[i - 1];
 	}
+
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "cpu method: " << milliseconds << "ms" << std::endl;
 	
 }
 
