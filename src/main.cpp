@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 
 
 		// === Sort Test ===
-		/*printf("\n");
+		printf("\n");
 		printf("*****************************\n");
 		printf("** Radix Sort TESTS **\n");
 		printf("*****************************\n");
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
 
 
 		printArray(60, m_out, true);
-		printArray(60, &m_array_vec[0], true);*/
+		printArray(60, &m_array_vec[0], true);
 
 		//  === Scan tests ====
 
