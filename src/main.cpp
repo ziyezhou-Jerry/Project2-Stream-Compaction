@@ -11,6 +11,7 @@
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/radixsort.h>
 #include "testing_helpers.hpp"
 
 int main(int argc, char* argv[]) {
@@ -18,16 +19,39 @@ int main(int argc, char* argv[]) {
     const int NPOT = SIZE - 3;
     int a[SIZE], b[SIZE], c[SIZE];
 
-    // Scan tests
+    
+	
+	int m_array[60];
+	for (int i = 0; i<30; i++)
+	{
+		m_array[i] = 30 - i;
+	}
+	for (int i = 30; i < 60; i++)
+	{
+		m_array[i] = i-30;
+	}
+	
+
+	//Sort Test
+	printf("\n");
+	printf("*****************************\n");
+	printf("** Radix Sort TESTS **\n");
+	printf("*****************************\n");
+	printDesc("radix sort, power-of-two");
+	StreamCompaction::RadixSort::radixsort(60, c, m_array);
+	printArray(60, c, true);
+	
+	
+	// Scan tests
 
     printf("\n");
     printf("****************\n");
     printf("** SCAN TESTS **\n");
     printf("****************\n");
 
-    genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
-    a[SIZE - 1] = 0;
-    printArray(SIZE, a, true);
+	genArray(SIZE - 1, a, 50);  // Leave a 0 at the end to test that edge case
+	a[SIZE - 1] = 0;
+	printArray(SIZE, a, true);
 
     zeroArray(SIZE, b);
     printDesc("cpu scan, power-of-two");
@@ -125,5 +149,7 @@ int main(int argc, char* argv[]) {
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
 
+
+	
 	system("pause");
 }

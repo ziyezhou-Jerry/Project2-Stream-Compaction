@@ -9,7 +9,7 @@ namespace StreamCompaction {
 	namespace RadixSort {
 
 
-		__global__ kern_get_k_bit_array(int n, int k, int* odata, const int* idata)
+		__global__ void kern_get_k_bit_array(int n, int k, int* odata, const int* idata)
 		{
 			int index = threadIdx.x + (blockIdx.x * blockDim.x);
 
@@ -19,13 +19,48 @@ namespace StreamCompaction {
 			}
 		}
 
-		__global__ kern_inv_array(int n, int* odata, const int* idata) //1-->0  0-->1
+		__global__ void kern_inv_array(int n, int* odata, const int* idata) //1-->0  0-->1
 		{
 			int index = threadIdx.x + (blockIdx.x * blockDim.x);
 
 			if (index < n)
 			{
 				odata[index] = std::abs(idata[index]-1);
+			}
+		}
+
+		__global__ void kern_get_totalFalses(int n, int* e, int *f, int* totalFalse)
+		{
+			*totalFalse = e[n - 1] + f[n - 1];
+		}
+
+		__global__ void kern_compute_t_array(int n,int * f,int *t,int* totalFalse)
+		{
+			int index = threadIdx.x + (blockIdx.x * blockDim.x);
+
+			if (index < n)
+			{
+				t[index] = index - f[index]+ *totalFalse;
+			}
+		}
+
+		__global__ void kern_compute_the_d_array(int n, int *b, int *t, int *f, int *d)
+		{
+			int index = threadIdx.x + (blockIdx.x * blockDim.x);
+
+			if (index < n)
+			{
+				d[index] = b[index] ? t[index] : f[index];
+			}
+		}
+
+		__global__ void kern_get_output(int n,int * d,int * odata,int* idata)
+		{
+			int index = threadIdx.x + (blockIdx.x * blockDim.x);
+
+			if (index < n)
+			{
+				odata[d[index]] = idata[index];
 			}
 		}
 
@@ -48,6 +83,8 @@ namespace StreamCompaction {
 			cudaMalloc((void**)&dev_f_array, n*sizeof(int));
 			int * dev_t_array;
 			cudaMalloc((void**)&dev_t_array, n*sizeof(int));
+			int * dev_d_array;
+			cudaMalloc((void**)&dev_d_array, n*sizeof(int));
 
 			int * dev_idata;
 			cudaMalloc((void**)&dev_idata, n*sizeof(int));
@@ -58,14 +95,49 @@ namespace StreamCompaction {
 			
 			cudaMemcpy(dev_idata,idata,n*sizeof(int),cudaMemcpyHostToDevice);
 
+
+			int* dev_totalFalse;
+			cudaMalloc((void**)&dev_totalFalse, 1*sizeof(int));
+
+
+			int* host_f_array = new int[n];
+			
+			int* host_e_array = new int[n];
+			
+			
 			for (int k = 0; k<32; k++)
 			{
 				//get b array
 				kern_get_k_bit_array << <fullBlocksPerGrid, threadsPerBlock >> > (n, k, dev_b_array,dev_idata);
 
 				//get e array
+				kern_inv_array << <fullBlocksPerGrid, threadsPerBlock >> >(n, dev_e_array, dev_b_array);
+
+				//get f data
+				
+				cudaMemcpy(host_e_array, dev_e_array, n*sizeof(int), cudaMemcpyDeviceToHost);
+				StreamCompaction::Thrust::scan(n, host_f_array, host_e_array); //may have problem of passing the argument!!!
+				cudaMemcpy(dev_f_array, host_f_array, n*sizeof(int), cudaMemcpyHostToDevice);
+
+				//get t array
+				//comptue the totalFalse
+				kern_get_totalFalses << <1, 1 >> >(n, dev_e_array, dev_f_array, dev_totalFalse);
+
+				kern_compute_t_array << < fullBlocksPerGrid, threadsPerBlock >> > (n, dev_f_array, dev_t_array, dev_totalFalse);
+
+				//get the d array 
+				kern_compute_the_d_array << < fullBlocksPerGrid, threadsPerBlock >> > (n, dev_b_array, dev_t_array, dev_f_array, dev_d_array);
+
+				//get the current output
+				kern_get_output << < fullBlocksPerGrid, threadsPerBlock >> > (n, dev_d_array, dev_odata,dev_idata);
+
+				//update the idata
+				cudaMemcpy(dev_idata, dev_odata, n*sizeof(int), cudaMemcpyDeviceToDevice);
 
 			}
+
+			cudaMemcpy(odata, dev_odata, n*sizeof(int), cudaMemcpyDeviceToHost);
+
 		}
 
 	
