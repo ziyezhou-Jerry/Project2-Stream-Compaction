@@ -151,6 +151,20 @@ int main(int argc, char* argv[]) {
 		printCmpResult(SIZE, b, c);
 
 
+		zeroArray(SIZE, c);
+		printDesc("work-efficient share_mem scan, power-of-two");
+		StreamCompaction::Efficient::scan_share_mem(SIZE, c, a);
+		/*printArray(SIZE, a, true);
+		printArray(SIZE, c, true);
+		printArray(SIZE, b, true);*/
+		printCmpResult(SIZE, b, c);
+
+
+		zeroArray(SIZE, c);
+		printDesc("work-efficient share_mem scan, non-power-of-two");
+		StreamCompaction::Efficient::scan_share_mem(NPOT, c, a);
+		printCmpResult(NPOT, b, c);
+
 
 		zeroArray(SIZE, c);
 		printDesc("thrust scan, power-of-two");
@@ -209,6 +223,18 @@ int main(int argc, char* argv[]) {
     count = StreamCompaction::Efficient::compact(NPOT, c, a);
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("work-efficient share mem compact, power-of-two");
+	count = StreamCompaction::Efficient::compact_share_mem(SIZE, c, a);
+	//printArray(count, c, true);
+	printCmpLenResult(count, expectedCount, b, c);
+
+	zeroArray(SIZE, c);
+	printDesc("work-efficient share mem compact, non-power-of-two");
+	count = StreamCompaction::Efficient::compact_share_mem(NPOT, c, a);
+	//printArray(count, c, true);
+	printCmpLenResult(count, expectedNPOT, b, c);
 
 
 	
